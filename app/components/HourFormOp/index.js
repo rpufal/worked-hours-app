@@ -2,10 +2,10 @@ import { HourFormDisplay } from "./styles/HourFormDisplay";
 import { useState, useEffect, useContext  } from "react"
 
 export default function HourFormOp() {
-  const [startWork, setStartWork] = useState({hour:'',minute:'', ok: false});
-  const [endWork, setEndWork] = useState({hour:'',minute:'', ok: false});
-  const [startLunch, setStartLunch] = useState({hour:'',minute:'', ok: false});
-  const [endLunch, setEndLunch] = useState({hour:'',minute:'', ok: false});
+  const [startWork, setStartWork] = useState({hour:'',minute:'', ok: false, totalMin: 0});
+  const [endWork, setEndWork] = useState({hour:'',minute:'', ok: false, totalMin: 0});
+  const [startLunch, setStartLunch] = useState({hour:'',minute:'', ok: false, totalMin: 0});
+  const [endLunch, setEndLunch] = useState({hour:'',minute:'', ok: false, totalMin: 0});
   const [date, setDate] = useState('');
   const [workedTime, setWorkedTime] = useState(0);
   const requiredTime = 480;
@@ -20,13 +20,29 @@ export default function HourFormOp() {
   };
   const getWorkedTime = () => {
     const startWorkMinutes = parseInt(startWork.minute) + (60 * parseInt(startWork.hour));
+    setStartWork({...startWork, totalMin: startWorkMinutes});
     const endWorkMinutes = parseInt(endWork.minute) + (60 * parseInt(endWork.hour));
+    setEndWork({...endWork, totalMin: endWorkMinutes});
     const startLunchMinutes = parseInt(startLunch.minute) + (60 * parseInt(startLunch.hour));
+    setStartLunch({...startLunch, totalMin: startLunchMinutes});
     const endLunchMinutes = parseInt(endLunch.minute) + (60 * parseInt(endLunch.hour));
+    setEndLunch({...endLunch, totalMin: endLunchMinutes});
     const totalMinutes = (endWorkMinutes - startWorkMinutes) - (endLunchMinutes - startLunchMinutes);
     checkTime();
     setWorkedTime(totalMinutes);
     setRemainingTime(requiredTime - totalMinutes);
+  };
+  const sendInfo = async () => {
+    console.log('loucura total')
+    const requestOptions = {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({workedTime, remainingTime, 
+        startWork: startWork.totalMin, endWork: endWork.totalMin, 
+        startLunch: startLunch.totalMin, endLunch: endLunch.totalMin, date})
+    };
+    const response = await fetch('http://localhost:3001/', requestOptions);
+    console.log(response);
   }
   return (
     <HourFormDisplay>
@@ -34,9 +50,9 @@ export default function HourFormOp() {
         <div>
           <button disabled={date} type="button" onClick={checkTime}>{`Date: ${date}`}</button>
         </div>
-        {statesArray.map(({currState, setCurrState, message}) => {
+        {statesArray.map(({currState, setCurrState, message},index) => {
           return (
-            <div className="input-field">
+            <div className="input-field" key={index}>
             <label>
               {`${message}`}
               <input 
@@ -78,7 +94,7 @@ export default function HourFormOp() {
         ? <h3>{`Exceeding ${Math.abs(Math.floor(remainingTime/60))} hour(s) and ${Math.abs(remainingTime % 60)} minute(s) of work`}</h3>
         :null}
       </div>
-      <button type="button"  disabled={!workedTime}>
+      <button type="button"  disabled={!workedTime} onClick={async () => await sendInfo()}>
         Finish the day!!
       </button>
     </HourFormDisplay>
